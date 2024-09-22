@@ -1,0 +1,24 @@
+stages:
+  - security
+
+security_scan:
+  stage: security
+  image: python:3.8
+  script:
+    # Install Bandit
+    - pip install bandit
+    # Run Bandit with a focus on high-severity vulnerabilities
+    - bandit -r . --severity-level high -f json -o bandit_report.json
+    # Fail the job if any high-severity vulnerabilities are found
+    - |
+      HIGH_SEVERITY_ISSUES=$(jq '.results[] | select(.issue_severity=="HIGH")' bandit_report.json | wc -l)
+      if [ "$HIGH_SEVERITY_ISSUES" -gt 0 ]; then
+        echo "High-severity vulnerabilities found. Failing the build."
+        exit 1
+      else
+        echo "No high-severity vulnerabilities found."
+  artifacts:
+    paths:
+      - bandit_report.json
+  only:
+    - main
